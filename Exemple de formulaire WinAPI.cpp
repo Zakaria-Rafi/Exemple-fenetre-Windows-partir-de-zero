@@ -1,3 +1,6 @@
+#define UNICODE
+#define _UNICODE
+
 #include <windows.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -8,52 +11,59 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     WNDCLASS wc = {};
 
-    wc.lpfnWndProc = WindowProc;                        // Définition de la fonction de procédure de fenêtre
+    wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
 
-    RegisterClass(&wc);                                 // Enregistrement de la classe de fenêtre
+    RegisterClass(&wc);
 
-    HWND hwnd = CreateWindowEx(
+    POINT cursorPos;
+    GetCursorPos(&cursorPos);
+    HMONITOR hMonitor = MonitorFromPoint(cursorPos, MONITOR_DEFAULTTONEAREST);
+
+    // Get the monitor's information
+    MONITORINFO monitorInfo;
+    monitorInfo.cbSize = sizeof(MONITORINFO);
+    GetMonitorInfo(hMonitor, &monitorInfo);
+
+    int width = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
+    int height = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
+
+    HWND hwnd = CreateWindowExW(
         0,
         CLASS_NAME,
         L"Exemple de formulaire WinAPI",
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 500, 300,
+        WS_OVERLAPPEDWINDOW | WS_MAXIMIZE, 
+        monitorInfo.rcWork.left, monitorInfo.rcWork.top, width, height,
         NULL,
         NULL,
         hInstance,
-        NULL
-    );
+        NULL);
 
     if (hwnd == NULL)
     {
         return 0;
     }
 
-    // Création d'une étiquette
-    HWND hLabel = CreateWindow(
-        L"STATIC",                                      // Classe prédéfinie pour l'étiquette
-        L"Ceci est un label",                            // Texte de l'étiquette
-        WS_VISIBLE | WS_CHILD | WS_BORDER,               // Styles
-        50, 50, 200, 20,                                 // Position et taille
-        hwnd,                                           // Fenêtre parente
+    HWND hLabel = CreateWindowW(
+        L"STATIC",
+        L"Ceci est un label",
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        50, 50, 200, 20,
+        hwnd,
         NULL,
         hInstance,
-        NULL
-    );
+        NULL);
 
-    // Création d'un bouton
-    HWND hButton = CreateWindow(
-        L"BUTTON",                                      // Classe prédéfinie pour le bouton
-        L"Cliquez ici",                                 // Texte du bouton
-        WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,        // Styles
-        50, 100, 100, 30,                                // Position et taille
-        hwnd,                                           // Fenêtre parente
-        (HMENU)1,                                       // Identifiant du bouton
+    HWND hButton = CreateWindowW(
+        L"BUTTON",
+        L"Cliquez ici",
+        WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        50, 100, 100, 30,
+        hwnd,
+        (HMENU)1,
         hInstance,
-        NULL
-    );
+        NULL);
 
     if (hLabel == NULL || hButton == NULL)
     {
@@ -61,6 +71,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     ShowWindow(hwnd, nCmdShow);
+    UpdateWindow(hwnd);
 
     MSG msg = {};
 
@@ -85,10 +96,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         if (LOWORD(wParam) == 1)
         {
-            MessageBox(hwnd, L"Le bouton a été cliqué !", L"Information", MB_OK);
+            MessageBoxW(hwnd, L"Le bouton a été cliqué !", L"Information", MB_OK);
             return 0;
         }
         break;
+    }
+
+    case WM_ERASEBKGND:
+        return 1;
+
+    case WM_SIZE:
+        InvalidateRect(hwnd, NULL, TRUE);
+        return 0;
+
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hwnd, &ps);
+
+        RECT clientRect;
+        GetClientRect(hwnd, &clientRect);
+        FillRect(hdc, &clientRect, (HBRUSH)(COLOR_WINDOW + 1));
+
+        EndPaint(hwnd, &ps);
+        return 0;
     }
 
     default:
