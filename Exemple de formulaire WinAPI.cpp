@@ -2,8 +2,21 @@
 #define _UNICODE
 
 #include <windows.h>
+#include <thread>
+#include <iostream>
+
+using namespace std;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+HWND hLabel;
+
+
+void DoWork(){
+    cout << "supra" << endl;
+
+
+}
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -17,6 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     RegisterClass(&wc);
 
+    // Get the monitor where the mouse cursor is located
     POINT cursorPos;
     GetCursorPos(&cursorPos);
     HMONITOR hMonitor = MonitorFromPoint(cursorPos, MONITOR_DEFAULTTONEAREST);
@@ -26,6 +40,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     monitorInfo.cbSize = sizeof(MONITORINFO);
     GetMonitorInfo(hMonitor, &monitorInfo);
 
+    // Use the monitor's work area to set the window size (full-screen)
     int width = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
     int height = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
 
@@ -33,7 +48,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         0,
         CLASS_NAME,
         L"Exemple de formulaire WinAPI",
-        WS_OVERLAPPEDWINDOW | WS_MAXIMIZE, 
+        WS_OVERLAPPEDWINDOW | WS_MAXIMIZE, // Add WS_MAXIMIZE style here
         monitorInfo.rcWork.left, monitorInfo.rcWork.top, width, height,
         NULL,
         NULL,
@@ -45,15 +60,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 0;
     }
 
-    HWND hLabel = CreateWindowW(
+    hLabel = CreateWindowW(
         L"STATIC",
         L"Ceci est un label",
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         50, 50, 200, 20,
         hwnd,
-        NULL,
+        (HMENU)100,
         hInstance,
         NULL);
+
+
+        
 
     HWND hButton = CreateWindowW(
         L"BUTTON",
@@ -64,6 +82,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         (HMENU)1,
         hInstance,
         NULL);
+
+    HWND hButtonConnexion = CreateWindowW(
+        L"BUTTON",
+        L"Connexion",
+        WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        200, 100, 100, 30,
+        hwnd,
+        (HMENU)2,
+        hInstance,
+        NULL);
+
+
+    
+
+    
 
     if (hLabel == NULL || hButton == NULL)
     {
@@ -99,7 +132,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             MessageBoxW(hwnd, L"Le bouton a été cliqué !", L"Information", MB_OK);
             return 0;
         }
-        break;
+        else if (LOWORD(wParam) == 2)
+        {
+            SetWindowText(hLabel, L"Le bouton de connexion a été cliqué !");
+            thread worker(DoWork);
+            worker.detach();
+            return 0;
+        }
+
+
+        return 0;
     }
 
     case WM_ERASEBKGND:
